@@ -29,8 +29,7 @@ void loop() {
     digitalWrite(electrovanne, HIGH);
   } else if ( WaterState == LOW && (currentMillis - previousMillis > interval) )  {
     // turn LED off
-     previousMillis = currentMillis;
-    //delay (600000); 
+     previousMillis = currentMillis; 
     digitalWrite(electrovanne, LOW); 
     
   }
