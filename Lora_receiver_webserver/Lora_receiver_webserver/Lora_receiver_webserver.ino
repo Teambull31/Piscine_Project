@@ -70,7 +70,7 @@ String temperature;
 String humidity;
 String pressure;
 String readingID;
-
+String WaterState;
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 
@@ -93,6 +93,10 @@ String processor(const String& var){
   }
   else if (var == "RRSI"){
     return String(rssi);
+  }
+  else if (var == "WaterState")
+  {
+    return WaterState; 
   }
   return String();
 }
@@ -178,10 +182,12 @@ void getLoRaData() {
     int pos1 = LoRaData.indexOf('/');
     int pos2 = LoRaData.indexOf('&');
     int pos3 = LoRaData.indexOf('#');
+    int pos4 = LoRaData.indexOf('µ');
     readingID = LoRaData.substring(0, pos1);
     temperature = LoRaData.substring(pos1 +1, pos2);
     humidity = LoRaData.substring(pos2+1, pos3);
-    pressure = LoRaData.substring(pos3+1, LoRaData.length());    
+    pressure = LoRaData.substring(pos3+1, pos4);  
+    WaterState =   LoRaData.substring(pos4+1, LoRaData.length())
   }
   // Get RSSI
   rssi = LoRa.packetRssi();
