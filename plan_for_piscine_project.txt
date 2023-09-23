@@ -1,0 +1,17 @@
+Step à suivre pour l'avancement du projet : 
+
+Step 1 : I have to replace pression information by water status 
+
+Step 2 : I have to test it if doesn't work i will send information with another coder who send the status button because it is closer than the current code 
+
+Step 3 : If it's work the status button change in receiver i have to start the swimming pool filling .
+
+Step 4 : Add function to look the temperature and humidity and active filling.
+
+Step 5 : Add a debit meter or a stopper if the filling during more than 1 hours and send alert on google or on what app .
+
+Step 6 : Add automatic fonction to  close or open the swimming pool store .
+
+Step 7 : open or close the store with google , and with solar sensor and open with PIR but in this case a timer begin this timer during 30 min 
+
+ 
