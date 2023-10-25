@@ -42,15 +42,15 @@
 #define BAND 866E6
 
 //OLED pins
-#define OLED_SDA 21
-#define OLED_SCL 22
-#define OLED_RST 4
+#define OLED_SDA 4
+#define OLED_SCL 15 
+#define OLED_RST 16
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
-// Replace the next variables with your SSID/Password combination
-const char* ssid = "WIFI_SO_BALMA";
-const char* password = "F0rGroupe!";
+// Replace with your network credentials
+const char* ssid     = "REPLACE_WITH_YOUR_SSID";
+const char* password = "REPLACE_WITH_YOUR_PASSWORD";
 
 // Define NTP Client to get time
 WiFiUDP ntpUDP;

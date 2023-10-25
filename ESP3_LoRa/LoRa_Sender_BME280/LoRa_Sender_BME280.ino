@@ -1,10 +1,10 @@
 /*********
   Rui Santos
   Complete project details at https://RandomNerdTutorials.com/esp32-lora-sensor-web-server/
-
+  
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files.
-
+  
   The above copyright notice and this permission notice shall be included in all
   copies or substantial portions of the Software.
 *********/
@@ -36,29 +36,18 @@
 #define BAND 866E6
 
 //OLED pins
-#define OLED_SDA 21
-#define OLED_SCL 22
-#define OLED_RST 4
+#define OLED_SDA 4
+#define OLED_SCL 15 
+#define OLED_RST 16
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 //BME280 definition
-#define SDA 15
+#define SDA 21
 #define SCL 13
 
 TwoWire I2Cone = TwoWire(1);
 Adafruit_BME280 bme;
-
-//variable declaration
-
-// set pin numbers
-const int Levelsensor = 4;  // the number of the pushbutton pin
-const int electrovanne =  15;    // the number of the LED pin
-unsigned long dynamique_interval = 60000; // interval to activate the filling
-const long interval = dynamique_interval;
-unsigned long previousMillis = 0;
-// variable for string the pushbutton status
-int WaterState = 0;
 
 //packet counter
 int readingID = 0;
@@ -73,7 +62,7 @@ float pressure = 0;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
 //Initialize OLED display
-void startOLED() {
+void startOLED(){
   //reset OLED display via software
   pinMode(OLED_RST, OUTPUT);
   digitalWrite(OLED_RST, LOW);
@@ -82,19 +71,19 @@ void startOLED() {
 
   //initialize OLED
   Wire.begin(OLED_SDA, OLED_SCL);
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3c, false, false)) { // Address 0x3C for 128x32
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3c, false, false)) { // Address 0x3C for 128x32
     Serial.println(F("SSD1306 allocation failed"));
-    for (;;); // Don't proceed, loop forever
+    for(;;); // Don't proceed, loop forever
   }
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.setTextSize(1);
-  display.setCursor(0, 0);
+  display.setCursor(0,0);
   display.print("LORA SENDER");
 }
 
 //Initialize LoRa module
-void startLoRA() {
+void startLoRA(){
   //SPI LoRa pins
   SPI.begin(SCK, MISO, MOSI, SS);
   //setup LoRa transceiver module
@@ -108,81 +97,57 @@ void startLoRA() {
   if (counter == 10) {
     // Increment readingID on every new reading
     readingID++;
-    Serial.println("Starting LoRa failed!");
+    Serial.println("Starting LoRa failed!"); 
   }
   Serial.println("LoRa Initialization OK!");
-  display.setCursor(0, 10);
+  display.setCursor(0,10);
   display.clearDisplay();
   display.print("LoRa Initializing OK!");
   display.display();
   delay(2000);
 }
 
-void startBME() {
-  I2Cone.begin(SDA, SCL, 100000);
-  bool status1 = bme.begin(0x76, &I2Cone);
+void startBME(){
+  I2Cone.begin(SDA, SCL, 100000); 
+  bool status1 = bme.begin(0x76, &I2Cone);  
   if (!status1) {
     Serial.println("Could not find a valid BME280_1 sensor, check wiring!");
     while (1);
   }
 }
 
-void Waterstate() {
-
-
-  WaterState = digitalRead(Levelsensor);
-  unsigned long currentMillis = millis();
-  Serial.println(WaterState);
-  // check if the pushbutton is pressed.
-  // if it is, the buttonState is HIGH
-  if (WaterState == HIGH) {
-    // turn LED on
-    digitalWrite(electrovanne, HIGH);
-  } else if ( WaterState == LOW && (currentMillis - previousMillis > interval) )  {
-    // turn LED off
-    previousMillis = currentMillis;
-
-    digitalWrite(electrovanne, LOW);
-
-  }
-  //else if ()// if received 0x24 via Lora.
-
-}
-
-void getReadings() {
-  //state level sensor
-  // WaterState = digitalRead(Levelsensor);
+void getReadings(){
   temperature = bme.readTemperature();
   humidity = bme.readHumidity();
   pressure = bme.readPressure() / 100.0F;
 }
 
 void sendReadings() {
-  LoRaMessage = String(readingID) + "/" + String(temperature) + "&" + String(humidity) + "#" + String(pressure) + String(WaterState) ;
+  LoRaMessage = String(readingID) + "/" + String(temperature) + "&" + String(humidity) + "#" + String(pressure);
   //Send LoRa packet to receiver
   LoRa.beginPacket();
   LoRa.print(LoRaMessage);
   LoRa.endPacket();
-
+  
   display.clearDisplay();
-  display.setCursor(0, 0);
+  display.setCursor(0,0);
   display.setTextSize(1);
   display.print("LoRa packet sent!");
-  display.setCursor(0, 20);
+  display.setCursor(0,20);
   display.print("Temperature:");
-  display.setCursor(72, 20);
+  display.setCursor(72,20);
   display.print(temperature);
-  display.setCursor(0, 30);
+  display.setCursor(0,30);
   display.print("Humidity:");
-  display.setCursor(54, 30);
+  display.setCursor(54,30);
   display.print(humidity);
-  display.setCursor(0, 40);
+  display.setCursor(0,40);
   display.print("Pressure:");
-  display.setCursor(54, 40);
+  display.setCursor(54,40);
   display.print(pressure);
-  display.setCursor(0, 50);
+  display.setCursor(0,50);
   display.print("Reading ID:");
-  display.setCursor(66, 50);
+  display.setCursor(66,50);
   display.print(readingID);
   display.display();
   Serial.print("Sending packet: ");
@@ -193,10 +158,6 @@ void sendReadings() {
 void setup() {
   //initialize Serial Monitor
   Serial.begin(115200);
-  // initialize the pushbutton pin as an input
-  pinMode(Levelsensor, INPUT);
-  // initialize the LED pin as an output
-  pinMode(electrovanne, OUTPUT);
   startOLED();
   startBME();
   startLoRA();
@@ -204,6 +165,5 @@ void setup() {
 void loop() {
   getReadings();
   sendReadings();
-  Waterstate(); 
-  delay(10000); // Must be changed by millis timer i think i have to change that with a zapptask like i want mean by that i have to call this fonction every ten second
+  delay(10000);
 }

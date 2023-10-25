@@ -4,7 +4,7 @@
 // set pin numbers
 const int Levelsensor = 4;  // the number of the pushbutton pin
 const int electrovanne =  15;    // the number of the LED pin
-unsigned long dynamique_interval = 60000;
+unsigned long dynamique_interval = 2000;
 const long interval = dynamique_interval;
 unsigned long previousMillis = 0;
 // variable for storing the pushbutton status 
