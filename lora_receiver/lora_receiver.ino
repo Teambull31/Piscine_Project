@@ -13,8 +13,7 @@
 //Libraries for LoRa
 #include <SPI.h>
 #include <LoRa.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
+
 //Libraries for OLED Display
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -39,12 +38,15 @@ extern "C" {
 #define MQTT_PUB_HUM "esp32/bme280/humidity"
 #define MQTT_PUB_PRES "esp32/bme280/pressure"
 
-// BME280 I2C
-Adafruit_BME280 bme;
+
 // Variables to hold sensor readings
 float temp;
 float hum;
 float pres;
+
+String temperature;
+String humidity;
+String pressure;
 
 AsyncMqttClient mqttClient;
 TimerHandle_t mqttReconnectTimer;
@@ -74,6 +76,21 @@ unsigned long previousMillis = 0;   // Stores last time temperature was publishe
 const long interval = 10000;        // Interval at which to publish sensor readings
 
 String LoRaData;
+// Replaces placeholder with DHT values
+String processor(const String& var){
+  //Serial.println(var);
+  if(var == "TEMPERATURE"){
+    return temperature;
+  }
+  else if(var == "HUMIDITY"){
+    return humidity;
+  }
+  else if(var == "PRESSURE"){
+    return pressure;
+  }
+  
+  return String();
+}
 
 void connectToWifi() {
   Serial.println("Connecting to Wi-Fi...");
@@ -100,6 +117,52 @@ void WiFiEvent(WiFiEvent_t event) {
       xTimerStart(wifiReconnectTimer, 0);
       break;
   }
+}
+
+//Initialize OLED display
+void startOLED(){
+  //reset OLED display via software
+  pinMode(OLED_RST, OUTPUT);
+  digitalWrite(OLED_RST, LOW);
+  delay(20); // à remplacer par des millis
+  digitalWrite(OLED_RST, HIGH);
+
+  //initialize OLED
+  Wire.begin(OLED_SDA, OLED_SCL);
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3c, false, false)) { // Address 0x3C for 128x32
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+  display.setTextSize(1);
+  display.setCursor(0,0);
+  display.print("LORA SENDER");
+}
+
+//Initialize LoRa module
+void startLoRA(){
+  int counter;
+  //SPI LoRa pins
+  SPI.begin(SCK, MISO, MOSI, SS);
+  //setup LoRa transceiver module
+  LoRa.setPins(SS, RST, DIO0);
+
+  while (!LoRa.begin(BAND) && counter < 10) {
+    Serial.print(".");
+    counter++;
+    delay(500); // à remplacer par des millis
+  }
+  if (counter == 10) {
+    // Increment readingID on every new reading
+    Serial.println("Starting LoRa failed!"); 
+  }
+  Serial.println("LoRa Initialization OK!");
+  display.setCursor(0,10);
+  display.clearDisplay();
+  display.print("LoRa Initializing OK!");
+  display.display();
+  delay(2000); // à remplacer par des millis
 }
 
 void onMqttConnect(bool sessionPresent) {
@@ -134,14 +197,37 @@ void onMqttPublish(uint16_t packetId) {
   Serial.println(packetId);
 }
 
+// Read LoRa packet and get the sensor readings
+void getLoRaData() {
+  Serial.print("Lora packet received: ");
+  // Read packet
+  while (LoRa.available()) {
+    String LoRaData = LoRa.readString();
+    // LoRaData format: readingID/temperature&soilMoisture#batterylevel
+    // String example: 1/27.43&654#95.34
+    Serial.print(LoRaData); 
+    
+    // Get readingID, temperature and soil moisture
+    int pos1 = LoRaData.indexOf('/');
+    int pos2 = LoRaData.indexOf('&');
+    int pos3 = LoRaData.indexOf('#');
+    //readingID = LoRaData.substring(0, pos1);
+    temperature = LoRaData.substring(pos1 +1, pos2);
+    humidity = LoRaData.substring(pos2+1, pos3);
+    pressure = LoRaData.substring(pos3+1, LoRaData.length());    
+  }
+/*  // Get RSSI
+  rssi = LoRa.packetRssi();
+  Serial.print(" with RSSI ");    
+  Serial.println(rssi);
+}*/
+
 void setup() {
   Serial.begin(115200);
   Serial.println();
-  
-  // Initialize BME280 sensor 
-  if (!bme.begin(0x76)) {
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
-    while (1);
+  startOLED();
+  startLoRA();
+
   }
   
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
@@ -168,10 +254,10 @@ void loop() {
     // Save the last time a new reading was published
     previousMillis = currentMillis;
     // New BME280 sensor readings
-    temp = bme.readTemperature();
+    temp = myString.toFloat(temperature);
     //temp = 1.8*bme.readTemperature() + 32;
-    hum = bme.readHumidity();
-    pres = bme.readPressure()/100.0F;
+    hum = humidity;
+    pres = pressure;
     
     // Publish an MQTT message on topic esp32/BME2800/temperature
     uint16_t packetIdPub1 = mqttClient.publish(MQTT_PUB_TEMP, 1, true, String(temp).c_str());                            
@@ -196,14 +282,15 @@ void loop() {
 
     //read packet
     while (LoRa.available()) {
-      LoRaData = LoRa.readString();
-      Serial.print(LoRaData);
+    LoRaData = LoRa.readString();
+    Serial.print(LoRaData);
     }
 
-    //print RSSI of packet
+    /*//print RSSI of packet
     int rssi = LoRa.packetRssi();
     Serial.print(" with RSSI ");    
-    Serial.println(rssi);
+    Serial.println(rssi);*/
+    
 
    // Dsiplay information
    display.clearDisplay();
@@ -218,6 +305,14 @@ void loop() {
    display.setCursor(30,40);
    display.print(rssi);
    display.display();   
+   /* 
+  // Check if there are LoRa packets available
+  int packetSize = LoRa.parsePacket();
+  if (packetSize) {
+    getLoRaData();
+    
+  }
+  */
   }
 }
 }
